@@ -2,8 +2,8 @@
 # [⚠️ Do not change this repo link ⚠️] :- https://github.com/LISA-KOREA/UPLOADER-BOT-V4
 
 import os
-import asyncio
-from aiohttp import web
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from plugins.config import Config
 from pyrogram import Client
 import logging
@@ -17,20 +17,19 @@ logging.getLogger("aiosqlite").setLevel(logging.WARNING)
 logging.getLogger("requests_cache").setLevel(logging.WARNING)
 
 # Render Web Service এর জন্য ডামি ওয়েব সার্ভার
-async def handle(request):
-    return web.Response(text="Bot is alive and running!")
+class DummyHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b"Bot is alive and running!")
 
-async def web_app():
-    app = web.Application()
-    app.add_routes([web.get('/', handle)])
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', int(os.environ.get('PORT', 8080)))
-    await site.start()
-    print(f"Web server started on port {int(os.environ.get('PORT', 8080))}")
+def run_web_server():
+    port = int(os.environ.get('PORT', 8080))
+    server = HTTPServer(('0.0.0.0', port), DummyHandler)
+    server.serve_forever()
 
 if __name__ == "__main__":
-
     # 🚨 SECURITY WARNING SECTION 🚨
     print("\n" + "=" * 60)
     print("🚨  SECURITY WARNING for Forked Users  🚨")
@@ -42,12 +41,15 @@ if __name__ == "__main__":
     print("📢  Support: @NT_BOTS_SUPPORT")
     print("=" * 60 + "\n")
 
-
     if not os.path.isdir(Config.DOWNLOAD_LOCATION):
         os.makedirs(Config.DOWNLOAD_LOCATION)
 
+    # ওয়েব সার্ভারকে ব্যাকগ্রাউন্ডে চালু করা হচ্ছে
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+
     plugins = dict(root="plugins")
-    bot = Client(
+    Client = Client(
         "@UploaderXNTBot",
         bot_token=Config.BOT_TOKEN,
         api_id=Config.API_ID,
@@ -57,16 +59,4 @@ if __name__ == "__main__":
     )
 
     print("🎊 I AM ALIVE 🎊  • Support @NT_BOTS_SUPPORT")
-    
-    # বট এবং ওয়েব সার্ভার একসাথে চালু করার জন্য
-    async def main():
-        await web_app()
-        await bot.start()
-        print("Bot started successfully!")
-        while True:
-            await asyncio.sleep(3600)
-
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Bot stopped.")
+    Client.run()
