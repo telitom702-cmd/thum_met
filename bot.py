@@ -2,6 +2,8 @@
 # [⚠️ Do not change this repo link ⚠️] :- https://github.com/LISA-KOREA/UPLOADER-BOT-V4
 
 import os
+import asyncio
+from aiohttp import web
 from plugins.config import Config
 from pyrogram import Client
 import logging
@@ -13,6 +15,19 @@ logger = logging.getLogger(__name__)
 logging.getLogger('pymongo').setLevel(logging.WARNING)
 logging.getLogger("aiosqlite").setLevel(logging.WARNING)
 logging.getLogger("requests_cache").setLevel(logging.WARNING)
+
+# Render Web Service এর জন্য ডামি ওয়েব সার্ভার
+async def handle(request):
+    return web.Response(text="Bot is alive and running!")
+
+async def web_app():
+    app = web.Application()
+    app.add_routes([web.get('/', handle)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', int(os.environ.get('PORT', 8080)))
+    await site.start()
+    print(f"Web server started on port {int(os.environ.get('PORT', 8080))}")
 
 if __name__ == "__main__":
 
@@ -31,9 +46,8 @@ if __name__ == "__main__":
     if not os.path.isdir(Config.DOWNLOAD_LOCATION):
         os.makedirs(Config.DOWNLOAD_LOCATION)
 
-
     plugins = dict(root="plugins")
-    Client = Client(
+    bot = Client(
         "@UploaderXNTBot",
         bot_token=Config.BOT_TOKEN,
         api_id=Config.API_ID,
@@ -43,4 +57,16 @@ if __name__ == "__main__":
     )
 
     print("🎊 I AM ALIVE 🎊  • Support @NT_BOTS_SUPPORT")
-    Client.run()
+    
+    # বট এবং ওয়েব সার্ভার একসাথে চালু করার জন্য
+    async def main():
+        await web_app()
+        await bot.start()
+        print("Bot started successfully!")
+        while True:
+            await asyncio.sleep(3600)
+
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot stopped.")
