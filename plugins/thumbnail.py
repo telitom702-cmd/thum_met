@@ -32,6 +32,7 @@ from plugins.database.database import db
 from plugins.config import Config
 from plugins.database.database import db
 from plugins.settings.settings import *
+from plugins.functions.display_progress import progress_for_pyrogram, humanbytes
 
 
 @Client.on_message(filters.photo)
@@ -169,7 +170,7 @@ async def Mdata03(download_directory):
     )
 
 
-# ====== দ্রুততর ভিডিও হ্যান্ডলার কোড এখান থেকে শুরু ======
+# ====== প্রগ্রেস সহ ভিডিও হ্যান্ডলার কোড ======
 @Client.on_message(filters.video & filters.private)
 async def video_handler(bot, update):
     await AddUser(bot, update)
@@ -181,7 +182,7 @@ async def video_handler(bot, update):
     # প্রসেসিং মেসেজ পাঠানো
     m = await bot.send_message(
         chat_id=update.chat.id,
-        text="**ভিডিও রিসিভ করেছি ✅\nদ্রুত প্রসেস করা হচ্ছে... ⚡**"
+        text="**ভিডিও রিসিভ করেছি ✅\nডাউনলোড শুরু হচ্ছে... ⏳**"
     )
 
     # ভিডিও ডাউনলোড করার পাথ
@@ -192,13 +193,20 @@ async def video_handler(bot, update):
     )
     
     try:
-        # ডাউনলোড শুরু
+        c_time = time.time()
+        # ডাউনলোড শুরু (প্রগ্রেস বার সহ)
         file = await bot.download_media(
             message=update,
-            file_name=download_location
+            file_name=download_location,
+            progress=progress_for_pyrogram,
+            progress_args=(
+                "**ডাউনলোড হচ্ছে... ⏳**",
+                m,
+                c_time
+            )
         )
         
-        # ভিডিওর মেটাডাটা দ্রুত বের করা
+        # ভিডিওর মেটাডাটা বের করা
         width, height, duration = await Mdata01(file)
         
         # কাস্টম থাম্বনেইল বের করা
@@ -207,6 +215,7 @@ async def video_handler(bot, update):
         # মেসেজ এডিট করা
         await m.edit_text("**প্রসেস সম্পন্ন ✅\nথাম্বনেইল সহ ভিডিও পাঠানো হচ্ছে... 🚀**")
         
+        u_time = time.time()
         # থাম্বনেইল সহ ভিডিও পাঠানো
         await bot.send_video(
             chat_id=update.chat.id,
@@ -216,8 +225,17 @@ async def video_handler(bot, update):
             height=height,
             supports_streaming=True,
             thumb=thumb_image_path,
-            caption="**এখানে আপনার ভিডিও 🎬**"
+            caption="**এখানে আপনার ভিডিও 🎬**",
+            progress=progress_for_pyrogram,
+            progress_args=(
+                "**আপলোড হচ্ছে... 🚀**",
+                m,
+                u_time
+            )
         )
+        
+        # কাজ শেষ হলে মেসেজ ডিলিট করে দেওয়া
+        await m.delete()
         
     except Exception as e:
         await m.edit_text(f"**এরর হয়েছে ❌\nকারণ: {e}**")
