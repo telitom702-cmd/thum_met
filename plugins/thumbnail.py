@@ -1,8 +1,5 @@
 # ©️ LISA-KOREA | @LISA_FAN_LK | NT_BOT_CHANNEL
 
-
-
-
 import logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -170,3 +167,68 @@ async def Mdata03(download_directory):
         if metadata is not None and metadata.has("duration")
         else 0
     )
+
+
+# ====== নতুন ভিডিও হ্যান্ডলার কোড এখান থেকে শুরু ======
+@Client.on_message(filters.video & filters.private)
+async def video_handler(bot, update):
+    await AddUser(bot, update)
+    if Config.UPDATES_CHANNEL:
+        fsub = await handle_force_subscribe(bot, update)
+        if fsub == 400:
+            return
+
+    # প্রসেসিং মেসেজ পাঠানো
+    m = await bot.send_message(
+        chat_id=update.chat.id,
+        text="**ভিডিও রিসিভ করেছি ✅\nথাম্বনেইল প্রসেস করা হচ্ছে... ⏳**"
+    )
+
+    # ভিডিও ডাউনলোড করার পাথ
+    download_location = os.path.join(
+        Config.DOWNLOAD_LOCATION,
+        str(update.from_user.id),
+        f"{update.id}.mp4"
+    )
+    
+    try:
+        # ভিডিও ডাউনলোড শুরু
+        file = await bot.download_media(
+            message=update,
+            file_name=download_location
+        )
+        
+        # ভিডিওর মেটাডাটা বের করা
+        width, height, duration = await Mdata01(file)
+        
+        # কাস্টম থাম্বনেইল বের করা
+        thumb_image_path = await Gthumb02(bot, update, duration, file)
+        
+        # প্রসেসিং মেসেজ এডিট করা
+        await m.edit_text("**ভিডিও প্রসেস সম্পন্ন হয়েছে ✅\nথাম্বনেইল সহ ভিডিও পাঠানো হচ্ছে... 🚀**")
+        
+        # থাম্বনেইল সহ ভিডিও পাঠানো
+        await bot.send_video(
+            chat_id=update.chat.id,
+            video=file,
+            duration=duration,
+            width=width,
+            height=height,
+            supports_streaming=True,
+            thumb=thumb_image_path,
+            caption="**এখানে আপনার ভিডিও 🎬**"
+        )
+        
+    except Exception as e:
+        await m.edit_text(f"**এরর হয়েছে ❌\nকারণ: {e}**")
+        
+    finally:
+        # ক্লিনআপ (সার্ভার থেকে ফাইল ডিলিট করা)
+        try:
+            if 'file' in locals() and os.path.lexists(file):
+                os.remove(file)
+            if 'thumb_image_path' in locals() and thumb_image_path and os.path.lexists(thumb_image_path):
+                os.remove(thumb_image_path)
+        except Exception as e:
+            logger.warning(f"Error cleaning up files: {e}")
+# ====== নতুন ভিডিও হ্যান্ডলার কোড শেষ ======
