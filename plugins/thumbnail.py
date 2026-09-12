@@ -169,7 +169,7 @@ async def Mdata03(download_directory):
     )
 
 
-# ====== নতুন ভিডিও হ্যান্ডলার কোড এখান থেকে শুরু ======
+# ====== দ্রুততর ভিডিও হ্যান্ডলার কোড এখান থেকে শুরু ======
 @Client.on_message(filters.video & filters.private)
 async def video_handler(bot, update):
     await AddUser(bot, update)
@@ -181,7 +181,7 @@ async def video_handler(bot, update):
     # প্রসেসিং মেসেজ পাঠানো
     m = await bot.send_message(
         chat_id=update.chat.id,
-        text="**ভিডিও রিসিভ করেছি ✅\nথাম্বনেইল প্রসেস করা হচ্ছে... ⏳**"
+        text="**ভিডিও রিসিভ করেছি ✅\nদ্রুত প্রসেস করা হচ্ছে... ⚡**"
     )
 
     # ভিডিও ডাউনলোড করার পাথ
@@ -192,20 +192,20 @@ async def video_handler(bot, update):
     )
     
     try:
-        # ভিডিও ডাউনলোড শুরু
+        # ডাউনলোড শুরু
         file = await bot.download_media(
             message=update,
             file_name=download_location
         )
         
-        # ভিডিওর মেটাডাটা বের করা
+        # ভিডিওর মেটাডাটা দ্রুত বের করা
         width, height, duration = await Mdata01(file)
         
         # কাস্টম থাম্বনেইল বের করা
         thumb_image_path = await Gthumb02(bot, update, duration, file)
         
-        # প্রসেসিং মেসেজ এডিট করা
-        await m.edit_text("**ভিডিও প্রসেস সম্পন্ন হয়েছে ✅\nথাম্বনেইল সহ ভিডিও পাঠানো হচ্ছে... 🚀**")
+        # মেসেজ এডিট করা
+        await m.edit_text("**প্রসেস সম্পন্ন ✅\nথাম্বনেইল সহ ভিডিও পাঠানো হচ্ছে... 🚀**")
         
         # থাম্বনেইল সহ ভিডিও পাঠানো
         await bot.send_video(
@@ -223,7 +223,7 @@ async def video_handler(bot, update):
         await m.edit_text(f"**এরর হয়েছে ❌\nকারণ: {e}**")
         
     finally:
-        # ক্লিনআপ (সার্ভার থেকে ফাইল ডিলিট করা)
+        # সার্ভার থেকে ফাইল ডিলিট করে সার্ভার ক্লিন রাখা
         try:
             if 'file' in locals() and os.path.lexists(file):
                 os.remove(file)
@@ -231,4 +231,4 @@ async def video_handler(bot, update):
                 os.remove(thumb_image_path)
         except Exception as e:
             logger.warning(f"Error cleaning up files: {e}")
-# ====== নতুন ভিডিও হ্যান্ডলার কোড শেষ ======
+# ====== কোড শেষ ======
