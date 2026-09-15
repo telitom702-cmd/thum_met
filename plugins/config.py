@@ -13,7 +13,7 @@ class Config(object):
     
     BOT_TOKEN = os.environ.get("BOT_TOKEN", "8721504696:AAEIop-Ye5m1hF_k4VfZkPWBLhfBdvxkAvI")
     API_ID = int(os.environ.get("API_ID", "24776633"))
-    API_HASH = os.environ.get("API_HASH", "57b1f632044b4e718f5dce004a988d69")
+    API_HASH = os.environ.get("API_HASH", "8823668328:AAEHQyUmGYBuu-d8BoHOvqE4OYp4sPxqjOs")
     
     DOWNLOAD_LOCATION = "./DOWNLOADS"
     MAX_FILE_SIZE = 2194304000
@@ -44,7 +44,7 @@ class Config(object):
     LOGGER = logging
     OWNER_ID = int(os.environ.get("OWNER_ID", "8248792819"))
     SESSION_NAME = "UploaderXNTBot"
-    UPDATES_CHANNEL = os.environ.get("UPDATES_CHANNEL", "-1002926169752")
+    UPDATES_CHANNEL = os.environ.get("UPDATES_CHANNEL", "-1004468070238")
 
     TG_MIN_FILE_SIZE = 2194304000
     BOT_USERNAME = os.environ.get("BOT_USERNAME", "Jacjacc")
