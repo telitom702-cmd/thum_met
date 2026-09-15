@@ -31,23 +31,16 @@ from plugins.config import Config
 from plugins.settings.settings import *
 from plugins.functions.display_progress import progress_for_pyrogram, humanbytes
 
-# ইউজার কোন অবস্থায় আছে তা রাখবে (থাম্বনেইল সেট করার সময় কনফ্লিক্ট এড়াতে)
-thumb_waiting = {}
+# ইউজারের নতুন নামের টেক্সট সেভ করে রাখার জন্য ডিকশনারি
+user_rename_data = {}
 
-
-# =========================================================
-# THUMBNAIL SAVE & COMMANDS
-# =========================================================
-
-@Client.on_message(filters.photo)
+@Client.on_message(filters.photo & ~filters.reply)
 async def save_photo(bot, update):
     await AddUser(bot, update)
     if Config.UPDATES_CHANNEL:
-        fsub = await handle_force_subscribe(bot, update)
-        if fsub == 400:
-            return
-
-    # যদি ইউজার থাম্বনেইল সেট করার জন্য অপেক্ষা না করে সরাসরি ছবি পাঠায়, তবুও সেভ হবে
+      fsub = await handle_force_subscribe(bot, update)
+      if fsub == 400:
+        return
     download_location = os.path.join(
         Config.DOWNLOAD_LOCATION,
         str(update.from_user.id) + ".jpg"
@@ -61,17 +54,15 @@ async def save_photo(bot, update):
         text=Translation.SAVED_CUSTOM_THUMB_NAIL,
     )
     await db.set_thumbnail(update.from_user.id, thumbnail=update.photo.file_id)
-    thumb_waiting.pop(update.from_user.id, None) # কাজ শেষে ওয়েটিং স্টেট ক্লিয়ার
 
 
 @Client.on_message(filters.command(["delthumb"]))
 async def delete_thumbnail(bot, update):
     await AddUser(bot, update)
     if Config.UPDATES_CHANNEL:
-        fsub = await handle_force_subscribe(bot, update)
-        if fsub == 400:
-            return
-
+      fsub = await handle_force_subscribe(bot, update)
+      if fsub == 400:
+        return
     download_location = os.path.join(
         Config.DOWNLOAD_LOCATION,
         str(update.from_user.id)
@@ -86,25 +77,23 @@ async def delete_thumbnail(bot, update):
     )
     await db.set_thumbnail(update.from_user.id, thumbnail=None)
 
-
-@Client.on_message(filters.command(["showthumb", "viewthumb"]))
+@Client.on_message(filters.command("showthumb"))
 async def viewthumbnail(bot, update):
     await AddUser(bot, update)
     if Config.UPDATES_CHANNEL:
-        fsub = await handle_force_subscribe(bot, update)
-        if fsub == 400:
-            return   
-            
+      fsub = await handle_force_subscribe(bot, update)
+      if fsub == 400:
+        return   
     thumbnail = await db.get_thumbnail(update.from_user.id)
     if thumbnail is not None:
         await bot.send_photo(
-            chat_id=update.chat.id,
-            photo=thumbnail,
-            caption=f"YOUR THUMBNAIL 🏞",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("🗑️ 𝙳𝙴𝙻𝙴𝚃𝙴 𝚃𝙷𝚄𝙼𝙱𝙽𝙰𝙸𝙻", callback_data="deleteThumbnail")]]
-            ),
-        )
+        chat_id=update.chat.id,
+        photo=thumbnail,
+        caption=f"YOUR THUMBNAIL 🏞",
+        reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("🗑️ 𝙳𝙴𝙻𝙴𝚃𝙴 𝚃𝙷𝚄𝙼𝙱𝙽𝙰𝙸𝙻", callback_data="deleteThumbnail", style=enums.ButtonStyle.DANGER)]]
+                ),
+         )
     else:
         await update.reply_text(text=f"𝙽𝙾 𝚃𝙷𝚄𝙼𝙱𝙽𝙰𝙸𝙻 😐")
 
@@ -119,15 +108,11 @@ async def delete_thumb_callback(bot, query: CallbackQuery):
         pass
     await db.set_thumbnail(user_id, thumbnail=None)
     try:
-        await query.message.edit_text("**আপনার কাস্টম থাম্বনেইল সফলভাবে ডিলিট করা হয়েছে!** 🗑️✅")
+        await query.message.edit_text("**আপনার কাস্টম থাম্বনেইল সফলভাবে ডিলিট করা হয়েছে!** 🗑️✅")
     except MessageNotModified:
         pass
-    await query.answer("থাম্বনেইল ডিলিট হয়েছে!", show_alert=False)
+    await query.answer("থাম্বনেইল ডিলিট হয়েছে!", show_alert=False)
 
-
-# =========================================================
-# HELPER FUNCTIONS (METADATA & THUMBNAIL)
-# =========================================================
 
 async def Gthumb01(bot, update):
     thumb_image_path = f"{Config.DOWNLOAD_LOCATION}/{str(update.from_user.id)}.jpg"
@@ -188,9 +173,8 @@ async def Mdata03(download_directory):
 
 
 # =========================================================
-# VIDEO RENAME HANDLER (Main Video Receiver)
+# ভিডিও রিসিভ করে বাটন দেখানোর কোড
 # =========================================================
-
 @Client.on_message((filters.video | (filters.document & filters.video)) & filters.private)
 async def video_handler(bot, update):
     await AddUser(bot, update)
@@ -199,7 +183,11 @@ async def video_handler(bot, update):
         if fsub == 400:
             return
 
-    # শুধু দুটি বাটন: Rename এবং Skip
+    if update.video:
+        file_name = update.video.file_name or f"Video_{update.from_user.id}.mp4"
+    else:
+        file_name = update.document.file_name or f"Video_{update.from_user.id}.mp4"
+
     buttons = InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("✏️ Rename", callback_data="rename_video")],
@@ -207,31 +195,30 @@ async def video_handler(bot, update):
         ]
     )
 
-    file_name = update.video.file_name if update.video else (update.document.file_name or f"Video_{update.from_user.id}.mp4")
-
     await update.reply_text(
-        text=f"**ভিডিও রিসিভ করেছি ✅**\n\n📁 ফাইলের বর্তমান নাম: `{file_name}`\n\nনিচের বাটন থেকে Rename অথবা Skip করুন।",
+        text=f"**ভিডিও রিসিভ করেছি ✅**\n\n📁 ফাইলের নাম: `{file_name}`\n\nনিচের বাটন থেকে Rename অথবা Skip করুন।",
         reply_markup=buttons,
         quote=True
     )
 
 
 # =========================================================
-# CALLBACK QUERY FOR RENAME/SKIP
+# বাটনে ক্লিক করলে যে কাজ হবে (Rename বা Skip)
 # =========================================================
-
 @Client.on_callback_query(filters.regex("^(rename|skip)"))
 async def callback_handler(bot, query: CallbackQuery):
     data = query.data
     user_id = query.from_user.id
 
     video_message = query.message.reply_to_message
-    
     if not video_message or not (video_message.video or video_message.document):
         await query.answer("মূল ফাইল পাওয়া যায়নি!", show_alert=True)
         return
 
     if data == "rename_video":
+        # ডিকশনারিতে ভিডিওর মেসেজ আইডি সেভ করে রাখছি
+        user_rename_data[user_id] = video_message.id
+        
         await query.message.edit_text(
             text="**প্লিজ ফাইলের জন্য একটি নতুন নাম লিখুন (এক্সটেনশন ছাড়া, যেমন: My Video):**",
             reply_markup=ForceReply(selective=True)
@@ -251,21 +238,32 @@ async def callback_handler(bot, query: CallbackQuery):
 
 
 # =========================================================
-# RENAME TEXT HANDLER (When user types new name)
+# ইউজার যখন নতুন নাম লিখে রিপ্লাই দিবে তখন কাজ হবে
 # =========================================================
-
-@Client.on_message(filters.private & filters.reply & filters.text)
+@Client.on_message(filters.private & filters.reply & filters.text & ~filters.bot)
 async def process_rename(bot, update):
     if not update.reply_to_message or not update.reply_to_message.from_user:
         return
     if update.reply_to_message.from_user.id != bot.me.id:
         return
 
-    new_name = update.text.strip()
-    # স্মার্ট এক্সটেনশন যুক্ত করা হলো
-    file_name = f"{new_name}.mp4" if not new_name.lower().endswith(('.mp4', '.mkv', '.webm', '.avi')) else new_name
+    user_id = update.from_user.id
     
-    video_message = update.reply_to_message.reply_to_message
+    # ডিকশনারি থেকে ভিডিওর আইডি বের করা
+    video_msg_id = user_rename_data.get(user_id)
+    if not video_msg_id:
+        return
+
+    new_name = update.text.strip()
+    if not new_name.lower().endswith(('.mp4', '.mkv', '.webm', '.avi')):
+        file_name = f"{new_name}.mp4"
+    else:
+        file_name = new_name
+    
+    # ডিকশনারি থেকে ডাটা ডিলিট করা
+    user_rename_data.pop(user_id, None)
+    
+    video_message = await bot.get_messages(update.chat.id, video_msg_id)
     
     if not video_message or not (video_message.video or video_message.document):
         await update.reply_text("⚠️ কিছু ভুল হয়েছে, মূল ফাইল পাওয়া যায়নি!")
@@ -277,13 +275,11 @@ async def process_rename(bot, update):
 
 
 # =========================================================
-# MAIN VIDEO PROCESSING FUNCTION (Download & Upload)
+# মূল ডাউনলোড এবং আপলোড প্রসেস (আগের কোড)
 # =========================================================
-
 async def process_video(bot, m, video_message, file_name):
     user_id = video_message.from_user.id
     
-    # ভিডিও ডাউনলোড করার পাথ
     download_location = os.path.join(
         Config.DOWNLOAD_LOCATION,
         str(user_id),
@@ -292,7 +288,6 @@ async def process_video(bot, m, video_message, file_name):
     
     try:
         c_time = time.time()
-        # ভিডিও ডাউনলোড শুরু (প্রগ্রেস বার সহ)
         file = await bot.download_media(
             message=video_message,
             file_name=download_location,
@@ -304,17 +299,12 @@ async def process_video(bot, m, video_message, file_name):
             )
         )
         
-        # ভিডিওর মেটাডাটা বের করা
         width, height, duration = await Mdata01(file)
-        
-        # কাস্টম থাম্বনেইল বের করা (Gthumb02 ফাংশন ব্যবহার করে)
         thumb_image_path = await Gthumb02(bot, video_message, duration, file)
         
-        # মেসেজ এডিট করা
         await m.edit_text("**প্রসেস সম্পন্ন ✅\nথাম্বনেইল সহ ভিডিও পাঠানো হচ্ছে... 🚀**")
         
         u_time = time.time()
-        # থাম্বনেইল সহ ভিডিও আপলোড করা
         await bot.send_video(
             chat_id=video_message.chat.id,
             video=file,
@@ -333,7 +323,6 @@ async def process_video(bot, m, video_message, file_name):
             )
         )
         
-        # কাজ শেষ হলে প্রোগ্রেস মেসেজ ডিলিট করে দেওয়া
         await m.delete()
         
     except Exception as e:
@@ -343,7 +332,6 @@ async def process_video(bot, m, video_message, file_name):
             pass
         
     finally:
-        # সার্ভার থেকে ফাইল ডিলিট করে সার্ভার ক্লিন রাখা
         try:
             if 'file' in locals() and os.path.lexists(file):
                 os.remove(file)
