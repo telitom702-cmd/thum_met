@@ -11,9 +11,9 @@ logging.basicConfig(
 
 class Config(object):
     
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "8721504696:AAEIop-Ye5m1hF_k4VfZkPWBLhfBdvxkAvI")
+    BOT_TOKEN = os.environ.get("BOT_TOKEN", "8823668328:AAEHQyUmGYBuu-d8BoHOvqE4OYp4sPxqjOs")
     API_ID = int(os.environ.get("API_ID", "24776633"))
-    API_HASH = os.environ.get("API_HASH", "8823668328:AAEHQyUmGYBuu-d8BoHOvqE4OYp4sPxqjOs")
+    API_HASH = os.environ.get("API_HASH", "57b1f632044b4e718f5dce004a988d69")
     
     DOWNLOAD_LOCATION = "./DOWNLOADS"
     MAX_FILE_SIZE = 2194304000
